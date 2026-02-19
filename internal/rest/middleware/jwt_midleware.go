@@ -23,7 +23,7 @@ func NewMiddleware(secret string, logger zerolog.Logger) *middleware {
 	}
 }
 
-// JWTAuth — Validate bearer token and attach claims to request context
+// JWTAuth — Bearer tokenni tekshirib, claims'ni context'ga yozadi
 func (m *middleware) JWTAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -39,7 +39,7 @@ func (m *middleware) JWTAuth() echo.MiddlewareFunc {
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 				return c.JSON(http.StatusUnauthorized, response.Response{
 					StatusCode:  401,
-					Description: "Invalid authorization header format",
+					Description: "Invalid authorization header format. Use: Bearer <token>",
 				})
 			}
 
@@ -52,12 +52,17 @@ func (m *middleware) JWTAuth() echo.MiddlewareFunc {
 				})
 			}
 
-			// Extract User ID and Email
 			if userID, ok := claims["user_id"].(string); ok {
 				c.Set("user_id", userID)
 			}
 			if email, ok := claims["email"].(string); ok {
 				c.Set("email", email)
+			}
+			if firstName, ok := claims["first_name"].(string); ok {
+				c.Set("first_name", firstName)
+			}
+			if lastName, ok := claims["last_name"].(string); ok {
+				c.Set("last_name", lastName)
 			}
 
 			return next(c)

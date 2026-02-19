@@ -44,6 +44,7 @@ func NewUserHandler(public *echo.Group, private *echo.Group, svc UserService, cf
 	public.POST("/login", h.Login)
 
 	// Private routes
+	private.POST("/logout", h.Logout)
 	private.GET("/users/:id", h.GetByID)
 	private.PUT("/users/:id", h.Update)
 	private.PUT("/users/:id/password", h.UpdatePassword)
@@ -242,6 +243,20 @@ func (h *UserHandler) Login(c echo.Context) error {
 		StatusCode:  200,
 		Description: "Login successful",
 		Data:        resp,
+	})
+}
+
+// @Summary      Logout
+// @Description  Invalidates the current session (client must remove the token)
+// @Tags         Auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} response.Response "Logged out"
+// @Router       /logout [post]
+func (h *UserHandler) Logout(c echo.Context) error {
+	return c.JSON(http.StatusOK, response.Response{
+		StatusCode:  200,
+		Description: "Logged out successfully",
 	})
 }
 

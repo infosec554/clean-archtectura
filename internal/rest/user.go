@@ -16,8 +16,11 @@ import (
 )
 
 type UserService interface {
+	Register(ctx context.Context, req *domain.CreateUser) (string, error)
+	Login(ctx context.Context, req *domain.LoginRequest) (domain.LoginResponse, error)
 	GetByID(ctx context.Context, id uuid.UUID) (domain.UserResponse, error)
 	Update(ctx context.Context, req *domain.UpdateUser) (string, error)
+	UpdatePassword(ctx context.Context, id uuid.UUID, req *domain.UpdatePasswordRequest) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -28,7 +31,7 @@ type UserHandler struct {
 	logger  zerolog.Logger
 }
 
-func NewUserHandler(g *echo.Group, svc UserService, cfg config.Config, c cache.ICache, logger zerolog.Logger) {
+func NewUserHandler(public *echo.Group, private *echo.Group, svc UserService, cfg config.Config, c cache.ICache, logger zerolog.Logger) {
 	h := &UserHandler{
 		service: svc,
 		cache:   c,
@@ -36,9 +39,15 @@ func NewUserHandler(g *echo.Group, svc UserService, cfg config.Config, c cache.I
 		logger:  logger.With().Str("handler", "user").Logger(),
 	}
 
-	g.GET("/users/:id", h.GetByID)
-	g.PUT("/users/:id", h.Update)
-	g.DELETE("/users/:id", h.Delete)
+	// Public routes
+	public.POST("/register", h.Register)
+	public.POST("/login", h.Login)
+
+	// Private routes
+	private.GET("/users/:id", h.GetByID)
+	private.PUT("/users/:id", h.Update)
+	private.PUT("/users/:id/password", h.UpdatePassword)
+	private.DELETE("/users/:id", h.Delete)
 }
 
 // @Summary      Get user by ID
@@ -169,5 +178,109 @@ func (h *UserHandler) Delete(c echo.Context) error {
 	return c.JSON(http.StatusOK, response.Response{
 		StatusCode:  200,
 		Description: "User deleted successfully",
+	})
+}
+
+// @Summary      Register user
+// @Description  Creates a new user account
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        user body domain.CreateUser true "Registration info"
+// @Success      201 {object} response.Response "User registered"
+// @Router       /register [post]
+func (h *UserHandler) Register(c echo.Context) error {
+	var req domain.CreateUser
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode:  400,
+			Description: "Invalid payload",
+		})
+	}
+
+	id, err := h.service.Register(c.Request().Context(), &req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, response.Response{
+			StatusCode:  500,
+			Description: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusCreated, response.Response{
+		StatusCode:  201,
+		Description: "User registered successfully",
+		Data:        map[string]string{"id": id},
+	})
+}
+
+// @Summary      Login
+// @Description  Authenticates user and returns JWT tokens
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        login body domain.LoginRequest true "Login credentials"
+// @Success      200 {object} response.Response{data=domain.LoginResponse} "Login success"
+// @Router       /login [post]
+func (h *UserHandler) Login(c echo.Context) error {
+	var req domain.LoginRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode:  400,
+			Description: "Invalid payload",
+		})
+	}
+
+	resp, err := h.service.Login(c.Request().Context(), &req)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, response.Response{
+			StatusCode:  401,
+			Description: "Invalid credentials",
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.Response{
+		StatusCode:  200,
+		Description: "Login successful",
+		Data:        resp,
+	})
+}
+
+// @Summary      Update password
+// @Description  Updates authenticated user's password
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "User ID"
+// @Param        update body domain.UpdatePasswordRequest true "Password update info"
+// @Security     BearerAuth
+// @Success      200 {object} response.Response "Password updated"
+// @Router       /users/{id}/password [put]
+func (h *UserHandler) UpdatePassword(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode:  400,
+			Description: "Invalid user ID",
+		})
+	}
+
+	var req domain.UpdatePasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode:  400,
+			Description: "Invalid payload",
+		})
+	}
+
+	if err := h.service.UpdatePassword(c.Request().Context(), id, &req); err != nil {
+		return c.JSON(http.StatusInternalServerError, response.Response{
+			StatusCode:  500,
+			Description: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.Response{
+		StatusCode:  200,
+		Description: "Password updated successfully",
 	})
 }

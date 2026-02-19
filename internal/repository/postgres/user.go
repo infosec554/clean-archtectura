@@ -23,6 +23,30 @@ func NewUserRepository(db *sql.DB, logger zerolog.Logger) *UserRepository {
 	}
 }
 
+// Create ...
+func (r *UserRepository) Create(ctx context.Context, req *domain.CreateUser) (string, error) {
+	var id uuid.UUID
+	query := `
+		INSERT INTO users (first_name, last_name, email, password)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	err := r.DB.QueryRowContext(ctx, query,
+		req.FirstName,
+		req.LastName,
+		req.Email,
+		req.Password,
+	).Scan(&id)
+
+	if err != nil {
+		r.logger.Error().Err(err).Msg("Error creating user")
+		return "", err
+	}
+
+	return id.String(), nil
+}
+
 // GetByID retrieves a single user by ID
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	var (
@@ -126,4 +150,53 @@ func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	r.logger.Info().Str("user_id", id.String()).Msg("User deleted successfully")
 	return nil
+}
+
+// GetByEmail retrieves a single user by email
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.User, error) {
+	var (
+		user      domain.User
+		dbEmail   sql.NullString
+		password  sql.NullString
+		createdAt sql.NullTime
+		updatedAt sql.NullTime
+	)
+
+	query := `
+		SELECT id, first_name, last_name, email, password, created_at, updated_at
+		FROM users
+		WHERE email = $1
+	`
+
+	if err := r.DB.QueryRowContext(ctx, query, email).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&dbEmail,
+		&password,
+		&createdAt,
+		&updatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.logger.Warn().Str("email", email).Msg("User not found")
+			return domain.User{}, errors.New("user not found")
+		}
+		r.logger.Error().Err(err).Str("email", email).Msg("Error scanning user by email")
+		return domain.User{}, err
+	}
+
+	if dbEmail.Valid {
+		user.Email = &dbEmail.String
+	}
+	if password.Valid {
+		user.Password = &password.String
+	}
+	if createdAt.Valid {
+		user.CreatedAt = createdAt.Time
+	}
+	if updatedAt.Valid {
+		user.UpdatedAt = updatedAt.Time
+	}
+
+	return user, nil
 }

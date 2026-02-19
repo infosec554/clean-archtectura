@@ -55,16 +55,17 @@ func main() {
 	jwtManager := token.NewJWTManager(cfg.JWTSecretKey)
 
 	addDoc(e)
+	public := api.Group("")
 	authGroup := api.Group("")
 
-	m := middleware.NewMiddleware(cfg.JWTSecretKey, publicRoutes, logger)
+	m := middleware.NewMiddleware(cfg.JWTSecretKey, logger)
 
 	authGroup.Use(m.JWTAuth())
 	{
 
 		userRepo := postgres.NewUserRepository(store.DB, logger)
 		userService := user_service.NewUserService(userRepo, cfg, c, logger, jwtManager)
-		rest.NewUserHandler(authGroup, userService, cfg, c, logger)
+		rest.NewUserHandler(public, authGroup, userService, cfg, c, logger)
 
 	}
 

@@ -42,7 +42,30 @@ type UserResponse struct {
 	Email     string    `json:"email,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-	Password  string    `json:"password,omitempty" validate:"omitempty,min=6,max=50"`
+}
+
+// LoginRequest ...
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+// LoginResponse ...
+type LoginResponse struct {
+	User         UserResponse `json:"user"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
+}
+
+// ResetPasswordRequest ...
+type ResetPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// UpdatePasswordRequest ...
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=6"`
 }
 
 // UserList for paginated user listing

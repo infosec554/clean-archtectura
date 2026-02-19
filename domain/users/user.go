@@ -8,13 +8,14 @@ import (
 
 // User represents a system user
 type User struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	FirstName string    `json:"first_name" db:"first_name"`
-	LastName  string    `json:"last_name" db:"last_name"`
-	Email     *string   `json:"email,omitempty" db:"email"`
-	Password  *string   `json:"-" db:"password"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID `json:"id" db:"id"`
+	FirstName     string    `json:"first_name" db:"first_name"`
+	LastName      string    `json:"last_name" db:"last_name"`
+	Email         *string   `json:"email,omitempty" db:"email"`
+	Password      *string   `json:"-" db:"password"`
+	EmailVerified bool      `json:"email_verified" db:"email_verified"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // CreateUser request for creating a new user
@@ -36,12 +37,24 @@ type UpdateUser struct {
 
 // UserResponse for returning user data
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID            uuid.UUID `json:"id"`
+	FirstName     string    `json:"first_name"`
+	LastName      string    `json:"last_name"`
+	Email         string    `json:"email,omitempty"`
+	EmailVerified bool      `json:"email_verified"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// VerifyEmailRequest — email + code
+type VerifyEmailRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required,len=6"`
+}
+
+// ResendCodeRequest — faqat email
+type ResendCodeRequest struct {
+	Email string `json:"email" validate:"required,email"`
 }
 
 // LoginRequest ...

@@ -18,6 +18,8 @@ import (
 type UserService interface {
 	Register(ctx context.Context, req *domain.CreateUser) (string, error)
 	Login(ctx context.Context, req *domain.LoginRequest) (domain.LoginResponse, error)
+	SendVerificationCode(ctx context.Context, req *domain.ResendCodeRequest) error
+	VerifyEmail(ctx context.Context, req *domain.VerifyEmailRequest) error
 	GetByID(ctx context.Context, id uuid.UUID) (domain.UserResponse, error)
 	Update(ctx context.Context, req *domain.UpdateUser) (string, error)
 	UpdatePassword(ctx context.Context, id uuid.UUID, req *domain.UpdatePasswordRequest) error
@@ -42,6 +44,8 @@ func NewUserHandler(public *echo.Group, private *echo.Group, svc UserService, cf
 	// Public routes
 	public.POST("/register", h.Register)
 	public.POST("/login", h.Login)
+	public.POST("/verify-email", h.VerifyEmail)
+	public.POST("/resend-code", h.ResendCode)
 
 	// Private routes
 	private.POST("/logout", h.Logout)
@@ -243,6 +247,74 @@ func (h *UserHandler) Login(c echo.Context) error {
 		StatusCode:  200,
 		Description: "Login successful",
 		Data:        resp,
+	})
+}
+
+// @Summary      Verify email
+// @Description  Verifies email with 6-digit code sent after registration
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body body domain.VerifyEmailRequest true "Email and code"
+// @Success      200 {object} response.Response "Email verified"
+// @Failure      400 {object} response.Response "Invalid payload"
+// @Failure      422 {object} response.Response "Invalid or expired code"
+// @Router       /verify-email [post]
+func (h *UserHandler) VerifyEmail(c echo.Context) error {
+	var req domain.VerifyEmailRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode:  400,
+			Description: "Invalid payload",
+		})
+	}
+
+	if err := h.service.VerifyEmail(c.Request().Context(), &req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, response.Response{
+			StatusCode:  422,
+			Description: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.Response{
+		StatusCode:  200,
+		Description: "Email verified successfully",
+	})
+}
+
+// @Summary      Resend verification code
+// @Description  Resends a 6-digit verification code to the given email
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body body domain.ResendCodeRequest true "Email"
+// @Success      200 {object} response.Response "Code sent"
+// @Failure      400 {object} response.Response "Invalid payload"
+// @Failure      404 {object} response.Response "User not found"
+// @Router       /resend-code [post]
+func (h *UserHandler) ResendCode(c echo.Context) error {
+	var req domain.ResendCodeRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode:  400,
+			Description: "Invalid payload",
+		})
+	}
+
+	if err := h.service.SendVerificationCode(c.Request().Context(), &req); err != nil {
+		code := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "not found") {
+			code = http.StatusNotFound
+		}
+		return c.JSON(code, response.Response{
+			StatusCode:  code,
+			Description: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.Response{
+		StatusCode:  200,
+		Description: "Verification code sent to " + req.Email,
 	})
 }
 

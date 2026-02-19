@@ -29,12 +29,11 @@ type Config struct {
 	AccessExpireTime  time.Duration
 	RefreshExpireTime time.Duration
 
-	MinioEndpoint   string
-	MinioAccessKey  string
-	MinioSecretKey  string
-	MinioSecure     bool
-	TemplatesBucket string
-	FilesBucket     string
+	SMTPHost string
+	SMTPPort string
+	SMTPUser string
+	SMTPPass string
+	SMTPFrom string
 }
 
 func Load() Config {
@@ -42,15 +41,15 @@ func Load() Config {
 
 	cfg := Config{}
 
-	cfg.AppName = cast.ToString(getOrDefault("APP_NAME", "career_service"))
+	cfg.AppName = cast.ToString(getOrDefault("APP_NAME", "clean-archtectura"))
 	cfg.AppPort = cast.ToString(getOrDefault("APP_PORT", ":8080"))
 	cfg.Environment = cast.ToString(getOrDefault("ENVIRONMENT", "development"))
 
-	cfg.PostgresHost = cast.ToString(getOrDefault("DB_HOST", "career_db"))
+	cfg.PostgresHost = cast.ToString(getOrDefault("DB_HOST", "localhost"))
 	cfg.PostgresPort = cast.ToString(getOrDefault("DB_PORT", "5432"))
 	cfg.PostgresUser = cast.ToString(getOrDefault("DB_USER", "postgres"))
 	cfg.PostgresPassword = cast.ToString(getOrDefault("DB_PASSWORD", "1234"))
-	cfg.PostgresDB = cast.ToString(getOrDefault("DB_NAME", "career"))
+	cfg.PostgresDB = cast.ToString(getOrDefault("DB_NAME", "mydb"))
 
 	cfg.RedisHost = cast.ToString(getOrDefault("REDIS_HOST", "localhost"))
 	cfg.RedisPort = cast.ToString(getOrDefault("REDIS_PORT", "6379"))
@@ -59,15 +58,14 @@ func Load() Config {
 	cfg.RedisTTL = cast.ToDuration(getOrDefault("REDIS_TTL", "10m"))
 
 	cfg.JWTSecretKey = cast.ToString(getOrDefault("JWT_SECRET_KEY", "supersecretkey"))
-	cfg.AccessExpireTime = cast.ToDuration(getOrDefault("ACCESS_TOKEN_TTL", "15m"))
+	cfg.AccessExpireTime = cast.ToDuration(getOrDefault("ACCESS_TOKEN_TTL", "24h"))
 	cfg.RefreshExpireTime = cast.ToDuration(getOrDefault("REFRESH_TOKEN_TTL", "168h"))
 
-	cfg.MinioAccessKey = cast.ToString(getOrDefault("MINIO_ACCESS_KEY", "IeJa7lTyrx0ZsVFNKTst"))
-	cfg.MinioSecretKey = cast.ToString(getOrDefault("MINIO_SECRET_KEY", "vGQDQVaI6nJf1ZGSMvURdEIzfSA85isvxQ7Krbam"))
-	cfg.MinioEndpoint = cast.ToString(getOrDefault("MINIO_ENDPOINT", "cdn-emis.e-edu.uz"))
-	cfg.MinioSecure = cast.ToBool(getOrDefault("MINIO_SECURE", "true"))
-	cfg.TemplatesBucket = cast.ToString(getOrDefault("TEMPLATE_BUCKET", "templates"))
-	cfg.FilesBucket = cast.ToString(getOrDefault("FILES_BUCKET", "files"))
+	cfg.SMTPHost = cast.ToString(getOrDefault("SMTP_HOST", "localhost"))
+	cfg.SMTPPort = cast.ToString(getOrDefault("SMTP_PORT", "1025"))
+	cfg.SMTPUser = cast.ToString(getOrDefault("SMTP_USER", ""))
+	cfg.SMTPPass = cast.ToString(getOrDefault("SMTP_PASS", ""))
+	cfg.SMTPFrom = cast.ToString(getOrDefault("SMTP_FROM", "noreply@example.com"))
 
 	return cfg
 }

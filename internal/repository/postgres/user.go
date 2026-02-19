@@ -58,7 +58,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.User
 	)
 
 	query := `
-		SELECT id, first_name, last_name, email, password, created_at, updated_at
+		SELECT id, first_name, last_name, email, password, email_verified, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -69,6 +69,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.User
 		&user.LastName,
 		&email,
 		&password,
+		&user.EmailVerified,
 		&createdAt,
 		&updatedAt,
 	); err != nil {
@@ -83,7 +84,6 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.User
 	if email.Valid {
 		user.Email = &email.String
 	}
-
 	if password.Valid {
 		user.Password = &password.String
 	}
@@ -95,6 +95,25 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (domain.User
 	}
 
 	return user, nil
+}
+
+// SetEmailVerified marks the user's email as verified
+func (r *UserRepository) SetEmailVerified(ctx context.Context, email string) error {
+	query := `UPDATE users SET email_verified = TRUE, updated_at = NOW() WHERE email = $1`
+
+	result, err := r.DB.ExecContext(ctx, query, email)
+	if err != nil {
+		r.logger.Error().Err(err).Str("email", email).Msg("Error setting email verified")
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("user not found")
+	}
+
+	r.logger.Info().Str("email", email).Msg("Email verified successfully")
+	return nil
 }
 
 // Update updates an existing user
@@ -163,7 +182,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.U
 	)
 
 	query := `
-		SELECT id, first_name, last_name, email, password, created_at, updated_at
+		SELECT id, first_name, last_name, email, password, email_verified, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -174,6 +193,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.U
 		&user.LastName,
 		&dbEmail,
 		&password,
+		&user.EmailVerified,
 		&createdAt,
 		&updatedAt,
 	); err != nil {

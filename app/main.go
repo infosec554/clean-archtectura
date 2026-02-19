@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	_ "embed"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/infosec554/clean-archtectura/config"
 	_ "github.com/infosec554/clean-archtectura/docs"
-	domain "github.com/infosec554/clean-archtectura/domain/company"
 	"github.com/infosec554/clean-archtectura/internal/repository/postgres"
 	"github.com/infosec554/clean-archtectura/internal/rest"
 	"github.com/infosec554/clean-archtectura/internal/rest/middleware"
@@ -23,16 +21,13 @@ import (
 	user_service "github.com/infosec554/clean-archtectura/service/user"
 )
 
-//go:embed docs/dual_education.yaml
-var swaggerFile []byte
-
-type noopTelegramService struct{}
-
-func (n *noopTelegramService) SendVacancyNotification(v *domain.Vacancy) error {
-	fmt.Printf("⚠️ Telegram bot sozlanmagan. TELEGRAM_BOT_TOKEN va TELEGRAM_CHANNEL_ID .env faylda yo'q.\n")
-	fmt.Printf("ℹ️ Vakansiya: %s (ID: %s) - Telegram ga yuborilmadi\n", v.Title, v.ID)
-	return nil
+var publicRoutes = map[string]bool{
+	"/api/v1/health":              true,
+	"/api/v1/docs":                true,
+	"/api/v1/dual_education.yaml": true,
 }
+
+var swaggerFile []byte
 
 func main() {
 	cfg := config.Load()
@@ -59,16 +54,6 @@ func main() {
 
 	jwtManager := token.NewJWTManager(cfg.JWTSecretKey)
 
-	publicRoutes := map[string]bool{
-		"/api/v1/students/login":        true,
-		"/api/v1/students/login/one-id": true,
-		"/api/v1/students/auth/one-id":  true,
-		"/api/v1/contracts/:id":         true,
-		"/api/v1/sso/login":             true, // HEMIS SSO
-		"/auth/sso/login":               true, // HEMIS SSO (alternative URL)
-		//"/api/v1/integrations/dual-educations": true,
-	}
-
 	addDoc(e)
 	authGroup := api.Group("")
 
@@ -78,7 +63,7 @@ func main() {
 	{
 
 		userRepo := postgres.NewUserRepository(store.DB, logger)
-		userService := user_service.NewUserService(userRepo, companyRepo, roleRepo, cfg, c, logger, jwtManager)
+		userService := user_service.NewUserService(userRepo, cfg, c, logger, jwtManager)
 		rest.NewUserHandler(authGroup, userService, cfg, c, logger)
 
 	}

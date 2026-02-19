@@ -1,37 +1,58 @@
-version: '3'
+version: '3.8'
+
 services:
-  app:
-    image: oybekmuzropov/vacancy:latest
+  career_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: career_app
     restart: always
     environment:
       - APP_NAME=${APP_NAME}
       - APP_PORT=${APP_PORT}
       - ENVIRONMENT=${ENVIRONMENT}
-      - DB_HOST=${DB_HOST}
+      - DB_HOST=career_db
       - DB_PORT=${DB_PORT}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
-      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_HOST=career_redis
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_TTL=${REDIS_TTL}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID}
     ports:
-      - "8082:8080"
-    volumes:
-      - vacancy_data:/data
+      - "8089:8080"
     depends_on:
-      - vacancy_cache
-  vacancy_cache:
-    image: redis
-    restart: always
-    ports:
-      - "6378:6379"
-    volumes:
-      - cache:/data
-volumes:
-  vacancy_data:
-  cache:
+      career_db:
+        condition: service_healthy
+      career_redis:
+        condition: service_started
 
+  career_db:
+    image: postgres:15-alpine
+    container_name: career_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    # Removed port mapping to avoid host conflict
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  career_redis:
+    image: redis:7-alpine
+    container_name: career_redis
+    restart: always
+    # Removed port mapping to avoid host conflict
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

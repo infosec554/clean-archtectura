@@ -62,8 +62,7 @@ func (j *JWTManager) GenerateUserAccessToken(user userDomain.User, companyID uui
 
 	claims := jwt.MapClaims{
 		"user_id":    user.ID.String(),
-		"user_type":  user.Type,
-		"pinfl":      user.PINFL,
+		"user_type":  "user",
 		"email":      derefString(user.Email),
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
@@ -87,7 +86,6 @@ func (j *JWTManager) GenerateUserRefreshToken(user userDomain.User, companyID uu
 	claims := jwt.MapClaims{
 		"user_id":    user.ID.String(),
 		"user_type":  "user",
-		"pinfl":      user.PINFL,
 		"email":      derefString(user.Email),
 		"company_id": companyID.String(),
 		"exp":        exp.Unix(),

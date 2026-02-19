@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
+
 	"github.com/infosec554/clean-archtectura/config"
 	"github.com/infosec554/clean-archtectura/domain/response"
-	"github.com/infosec554/clean-archtectura/pkg/cache"
-
 	domain "github.com/infosec554/clean-archtectura/domain/users"
+	"github.com/infosec554/clean-archtectura/pkg/cache"
 )
 
 type UserService interface {
@@ -112,14 +112,6 @@ func (h *UserHandler) Update(c echo.Context) error {
 		})
 	}
 	req.ID = id
-
-	if ok, err := isValid(&req); !ok {
-		return c.JSON(http.StatusUnprocessableEntity, response.Response{
-			StatusCode:  422,
-			Description: "Validation failed",
-			Data:        err.Error(),
-		})
-	}
 
 	if _, err := h.service.Update(c.Request().Context(), &req); err != nil {
 		code := http.StatusInternalServerError

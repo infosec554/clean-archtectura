@@ -3,12 +3,11 @@ package user
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 	"github.com/infosec554/clean-archtectura/config"
 	"github.com/infosec554/clean-archtectura/pkg/cache"
+	"github.com/rs/zerolog"
 
 	domain "github.com/infosec554/clean-archtectura/domain/users"
 	"github.com/infosec554/clean-archtectura/pkg/token"
@@ -16,10 +15,8 @@ import (
 
 type UserRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (domain.User, error)
-	GetUserFirstActiveCompany(ctx context.Context, userID uuid.UUID) (*uuid.UUID, string, error)
 	Update(ctx context.Context, req *domain.UpdateUser, passwordHash string) (string, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	UpdateLastLogin(ctx context.Context, userID uuid.UUID) error
 }
 
 type UserService struct {
@@ -71,21 +68,15 @@ func (s *UserService) Delete(ctx context.Context, id uuid.UUID) error {
 func convertToUserResponse(user domain.User) domain.UserResponse {
 	resp := domain.UserResponse{
 		ID:        user.ID,
-		Passport:  "",
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}
 
-	if user.Passport != nil {
-		resp.Passport = *user.Passport
-	}
 	if user.Email != nil {
 		resp.Email = *user.Email
 	}
-
-	resp.FullName = strings.TrimSpace(resp.LastName + " " + resp.FirstName)
 
 	return resp
 }

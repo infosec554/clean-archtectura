@@ -16,7 +16,7 @@ MIGRATE=$(shell which migrate 2>/dev/null)
 
 up: ## Start containers (local development with build)
 	@echo "🚀 Starting Docker Compose (local build)..."
-	docker compose -f compose.yaml -f compose.local.yaml up -d --build
+	docker compose up -d --build
 
 up-prod: ## Start containers (production mode - uses registry image)
 	@echo "🚀 Starting Docker Compose (production)..."

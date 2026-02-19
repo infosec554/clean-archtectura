@@ -29,11 +29,9 @@ type Config struct {
 	AccessExpireTime  time.Duration
 	RefreshExpireTime time.Duration
 
-	SMTPHost string
-	SMTPPort string
-	SMTPUser string
-	SMTPPass string
-	SMTPFrom string
+	BrevoAPIKey     string
+	BrevoSenderEmail string
+	BrevoSenderName  string
 }
 
 func Load() Config {
@@ -61,11 +59,9 @@ func Load() Config {
 	cfg.AccessExpireTime = cast.ToDuration(getOrDefault("ACCESS_TOKEN_TTL", "24h"))
 	cfg.RefreshExpireTime = cast.ToDuration(getOrDefault("REFRESH_TOKEN_TTL", "168h"))
 
-	cfg.SMTPHost = cast.ToString(getOrDefault("SMTP_HOST", "localhost"))
-	cfg.SMTPPort = cast.ToString(getOrDefault("SMTP_PORT", "1025"))
-	cfg.SMTPUser = cast.ToString(getOrDefault("SMTP_USER", ""))
-	cfg.SMTPPass = cast.ToString(getOrDefault("SMTP_PASS", ""))
-	cfg.SMTPFrom = cast.ToString(getOrDefault("SMTP_FROM", "noreply@example.com"))
+	cfg.BrevoAPIKey      = cast.ToString(getOrDefault("BREVO_API_KEY", ""))
+	cfg.BrevoSenderEmail = cast.ToString(getOrDefault("BREVO_SENDER_EMAIL", "noreply@example.com"))
+	cfg.BrevoSenderName  = cast.ToString(getOrDefault("BREVO_SENDER_NAME", "MyApp"))
 
 	return cfg
 }

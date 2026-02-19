@@ -1,0 +1,16 @@
+# Environment
+.env
+
+# Binary
+*.exe
+*.bin
+server.log
+exporting
+
+# Temp files
+*.docx
+textmoks.txt
+
+# Air
+.air.toml
+tmp/

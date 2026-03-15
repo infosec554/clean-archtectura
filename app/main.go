@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +17,7 @@ import (
 	"github.com/infosec554/clean-archtectura/internal/rest/middleware"
 	"github.com/infosec554/clean-archtectura/pkg/cache"
 	"github.com/infosec554/clean-archtectura/pkg/token"
-	user_service "github.com/infosec554/clean-archtectura/service/user"
+	admin_service "github.com/infosec554/clean-archtectura/service/admin"
 )
 
 func main() {
@@ -28,13 +27,13 @@ func main() {
 	logger := zerolog.New(os.Stdout)
 	zerolog.ErrorFieldName = "error"
 
-	logger.Info().Any("config", cfg).Msg("loading config")
+	logger.Info().Str("app", cfg.AppName).Msg("starting")
 
 	c := cache.NewCache(cfg)
 
 	store, err := postgres.New(ctx, cfg)
 	if err != nil {
-		log.Fatalf("❌ Storage init error: %v", err)
+		log.Fatalf("storage init error: %v", err)
 	}
 	defer store.Close()
 
@@ -46,35 +45,34 @@ func main() {
 
 	jwtManager := token.NewJWTManager(cfg.JWTSecretKey)
 
-	public := api.Group("")
-	authGroup := api.Group("")
+	// Route groups
+	public     := api.Group("")
+	private    := api.Group("")
+	superadmin := api.Group("")
 
 	m := middleware.NewMiddleware(cfg.JWTSecretKey, logger)
+	private.Use(m.JWTAuth())
+	superadmin.Use(m.JWTAuth(), middleware.SuperAdminOnly())
 
-	authGroup.Use(m.JWTAuth())
-	{
+	// Admin
+	adminRepo    := postgres.NewAdminRepository(store.DB, logger)
+	adminSvc     := admin_service.NewAdminService(adminRepo, cfg, c, logger, jwtManager)
+	rest.NewAdminHandler(public, private, superadmin, adminSvc, logger)
 
-		userRepo := postgres.NewUserRepository(store.DB, logger)
-		userService := user_service.NewUserService(userRepo, cfg, c, logger, jwtManager)
-		rest.NewUserHandler(public, authGroup, userService, cfg, c, logger)
-
-	}
-
-	// Redirect /api/v1/docs to /api/swagger/index.html
+	// Swagger
 	e.GET("/api/v1/docs", func(c echo.Context) error {
 		return c.Redirect(http.StatusMovedPermanently, "/api/swagger/index.html")
 	})
-
 	e.GET("/api/swagger/*", echoSwagger.WrapHandler)
 
 	api.GET("/health", func(c echo.Context) error {
-		return c.String(http.StatusOK, "✅ OK")
+		return c.String(http.StatusOK, "OK")
 	})
 
 	for _, r := range e.Routes() {
 		log.Printf("%s %s", r.Method, r.Path)
 	}
 
-	log.Printf("🚀 %s running on %s", cfg.AppName, cfg.AppPort)
+	log.Printf("%s running on %s", cfg.AppName, cfg.AppPort)
 	e.Logger.Fatal(e.Start(cfg.AppPort))
 }

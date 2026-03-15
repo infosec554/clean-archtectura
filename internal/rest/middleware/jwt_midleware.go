@@ -23,7 +23,7 @@ func NewMiddleware(secret string, logger zerolog.Logger) *middleware {
 	}
 }
 
-// JWTAuth — Bearer tokenni tekshirib, claims'ni context'ga yozadi
+// JWTAuth — Bearer tokenni tekshirib, admin claims'ni context'ga yozadi
 func (m *middleware) JWTAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -52,19 +52,31 @@ func (m *middleware) JWTAuth() echo.MiddlewareFunc {
 				})
 			}
 
-			if userID, ok := claims["user_id"].(string); ok {
-				c.Set("user_id", userID)
+			if adminID, ok := claims["admin_id"].(string); ok {
+				c.Set("admin_id", adminID)
 			}
 			if email, ok := claims["email"].(string); ok {
 				c.Set("email", email)
 			}
-			if firstName, ok := claims["first_name"].(string); ok {
-				c.Set("first_name", firstName)
-			}
-			if lastName, ok := claims["last_name"].(string); ok {
-				c.Set("last_name", lastName)
+			if role, ok := claims["role"].(string); ok {
+				c.Set("role", role)
 			}
 
+			return next(c)
+		}
+	}
+}
+
+// SuperAdminOnly — faqat superadmin o'ta oladi
+func SuperAdminOnly() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if getString(c.Get("role")) != "superadmin" {
+				return c.JSON(http.StatusForbidden, response.Response{
+					StatusCode:  403,
+					Description: "Superadmin access required",
+				})
+			}
 			return next(c)
 		}
 	}

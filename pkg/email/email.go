@@ -31,19 +31,32 @@ type brevoContact struct {
 	Email string `json:"email"`
 }
 
-// SendVerificationCode sends a 6-digit OTP code via Brevo API.
+// SendVerificationCode — 2FA login kodi (5 daqiqa)
 func (s *Sender) SendVerificationCode(to, code string) error {
+	return s.send(to, "Admin Login Code", fmt.Sprintf(
+		"Your login verification code is: %s\n\nThis code expires in 5 minutes.",
+		code,
+	))
+}
+
+// SendInviteCode — yangi admin taklif kodi (24 soat)
+func (s *Sender) SendInviteCode(to, code string) error {
+	return s.send(to, "Admin Panel Invitation", fmt.Sprintf(
+		"You have been invited to the admin panel.\n\nYour invite code: %s\n\nThis code expires in 24 hours.",
+		code,
+	))
+}
+
+// send — Brevo API orqali email yuborish
+func (s *Sender) send(to, subject, text string) error {
 	body := brevoRequest{
 		Sender: brevoContact{
 			Name:  s.cfg.BrevoSenderName,
 			Email: s.cfg.BrevoSenderEmail,
 		},
-		To:      []brevoContact{{Email: to}},
-		Subject: "Email Verification Code",
-		TextContent: fmt.Sprintf(
-			"Your verification code is: %s\n\nThis code expires in 5 minutes.",
-			code,
-		),
+		To:          []brevoContact{{Email: to}},
+		Subject:     subject,
+		TextContent: text,
 	}
 
 	payload, err := json.Marshal(body)

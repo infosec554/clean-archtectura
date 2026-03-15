@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	userDomain "github.com/infosec554/clean-archtectura/domain/users"
+	adminDomain "github.com/infosec554/clean-archtectura/domain/admin"
 )
 
 type JWTManager struct {
@@ -17,29 +17,26 @@ func NewJWTManager(secret string) *JWTManager {
 	return &JWTManager{SecretKey: []byte(secret)}
 }
 
-// Generate generates access and refresh tokens for users
-func (j *JWTManager) Generate(user userDomain.User) (string, string, error) {
-	// Access Token
-	accessExp := time.Now().Add(24 * time.Hour)
+// GenerateAdmin — admin uchun access va refresh token yaratadi
+func (j *JWTManager) GenerateAdmin(admin adminDomain.Admin) (string, string, error) {
+	// Access Token (24 soat)
 	accessClaims := jwt.MapClaims{
-		"user_id":    user.ID.String(),
-		"email":      derefString(user.Email),
-		"first_name": user.FirstName,
-		"last_name":  user.LastName,
-		"exp":        accessExp.Unix(),
-		"iat":        time.Now().Unix(),
+		"admin_id": admin.ID.String(),
+		"email":    admin.Email,
+		"role":     string(admin.Role),
+		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+		"iat":      time.Now().Unix(),
 	}
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString(j.SecretKey)
 	if err != nil {
 		return "", "", err
 	}
 
-	// Refresh Token
-	refreshExp := time.Now().Add(7 * 24 * time.Hour)
+	// Refresh Token (7 kun)
 	refreshClaims := jwt.MapClaims{
-		"user_id": user.ID.String(),
-		"exp":     refreshExp.Unix(),
-		"iat":     time.Now().Unix(),
+		"admin_id": admin.ID.String(),
+		"exp":      time.Now().Add(7 * 24 * time.Hour).Unix(),
+		"iat":      time.Now().Unix(),
 	}
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString(j.SecretKey)
 	if err != nil {
@@ -49,8 +46,9 @@ func (j *JWTManager) Generate(user userDomain.User) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
+// Verify — tokenni tekshiradi va claimslarni qaytaradi
 func (j *JWTManager) Verify(tokenStr string) (bool, jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+	t, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
@@ -60,16 +58,8 @@ func (j *JWTManager) Verify(tokenStr string) (bool, jwt.MapClaims, error) {
 		return false, nil, err
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
 		return true, claims, nil
 	}
 	return false, nil, fmt.Errorf("invalid token")
-}
-
-// pointerli stringni xavfsiz ochish
-func derefString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

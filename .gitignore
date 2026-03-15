@@ -4,6 +4,7 @@
 # Binary
 *.exe
 *.bin
+main
 server.log
 exporting
 

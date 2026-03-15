@@ -21,14 +21,6 @@ import (
 	user_service "github.com/infosec554/clean-archtectura/service/user"
 )
 
-var publicRoutes = map[string]bool{
-	"/api/v1/health":              true,
-	"/api/v1/docs":                true,
-	"/api/v1/dual_education.yaml": true,
-}
-
-var swaggerFile []byte
-
 func main() {
 	cfg := config.Load()
 	ctx := context.Background()
@@ -54,7 +46,6 @@ func main() {
 
 	jwtManager := token.NewJWTManager(cfg.JWTSecretKey)
 
-	addDoc(e)
 	public := api.Group("")
 	authGroup := api.Group("")
 
@@ -69,6 +60,11 @@ func main() {
 
 	}
 
+	// Redirect /api/v1/docs to /api/swagger/index.html
+	e.GET("/api/v1/docs", func(c echo.Context) error {
+		return c.Redirect(http.StatusMovedPermanently, "/api/swagger/index.html")
+	})
+
 	e.GET("/api/swagger/*", echoSwagger.WrapHandler)
 
 	api.GET("/health", func(c echo.Context) error {
@@ -81,34 +77,4 @@ func main() {
 
 	log.Printf("🚀 %s running on %s", cfg.AppName, cfg.AppPort)
 	e.Logger.Fatal(e.Start(cfg.AppPort))
-}
-
-func addDoc(e *echo.Echo) {
-	var swaggerUIHTML = `<!DOCTYPE html>
-<html>
-<head>
-    <title>API Docs</title>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
-</head>
-<body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script>
-        SwaggerUIBundle({
-            url: "/api/v1/dual_education.yaml",
-            dom_id: '#swagger-ui'
-        });
-    </script>
-</body>
-</html>`
-
-	e.GET("/api/v1/dual_education.yaml", func(c echo.Context) error {
-		return c.Blob(http.StatusOK, "application/yaml", swaggerFile)
-	})
-
-	// Serve Swagger UI
-	e.GET("/api/v1/docs", func(c echo.Context) error {
-		return c.HTML(http.StatusOK, swaggerUIHTML)
-	})
 }
